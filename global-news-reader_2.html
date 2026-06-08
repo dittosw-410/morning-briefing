@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>글로벌 모닝 브리핑</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700;900&family=Noto+Serif+KR:wght@300;400;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root { --ink:#1a1410; --paper:#f5f0e8; --cream:#ede8dc; --accent:#c8380a; --muted:#7a6f62; --rule:#c9bfaa; }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { background:var(--paper); color:var(--ink); font-family:'Noto Serif KR',serif; min-height:100vh; }
+
+  .masthead { background:var(--ink); color:var(--paper); text-align:center; padding:16px 24px 12px; border-bottom:4px solid var(--accent); }
+  .masthead-top { display:flex; justify-content:space-between; align-items:center; font-family:'IBM Plex Mono',monospace; font-size:10px; color:#8a8070; margin-bottom:8px; flex-wrap:wrap; gap:4px; }
+  .masthead h1 { font-family:'Playfair Display',serif; font-size:clamp(24px,5vw,48px); font-weight:900; letter-spacing:-1px; line-height:1; }
+  .masthead h1 span { color:var(--accent); }
+  .masthead-sub { font-family:'IBM Plex Mono',monospace; font-size:10px; color:#8a8070; letter-spacing:3px; text-transform:uppercase; margin-top:6px; }
+
+  .source-bar { background:var(--cream); border-bottom:2px solid var(--rule); padding:0 12px; display:flex; overflow-x:auto; scrollbar-width:none; }
+  .source-bar::-webkit-scrollbar { display:none; }
+  .source-group { display:flex; align-items:stretch; border-right:1px solid var(--rule); }
+  .source-group:last-child { border-right:none; }
+  .group-label { font-family:'IBM Plex Mono',monospace; font-size:9px; color:var(--muted); padding:0 7px; display:flex; align-items:center; background:rgba(0,0,0,0.03); border-right:1px solid var(--rule); white-space:nowrap; }
+  .tab { padding:10px 12px; cursor:pointer; font-family:'IBM Plex Mono',monospace; font-size:11px; color:var(--muted); border-bottom:3px solid transparent; transition:all 0.2s; white-space:nowrap; background:none; border-top:none; border-left:none; border-right:none; }
+  .tab:hover { color:var(--ink); background:rgba(0,0,0,0.04); }
+  .tab.active { color:var(--accent); border-bottom-color:var(--accent); background:var(--paper); font-weight:500; }
+
+  .main { max-width:1400px; margin:0 auto; padding:16px 14px; }
+  .status-bar { display:flex; justify-content:space-between; align-items:center; padding:8px 0 14px; flex-wrap:wrap; gap:8px; }
+  .status-info { font-family:'IBM Plex Mono',monospace; font-size:11px; color:var(--muted); }
+  .refresh-btn { font-family:'IBM Plex Mono',monospace; font-size:11px; color:var(--paper); background:var(--ink); border:none; padding:8px 18px; cursor:pointer; transition:background 0.2s; }
+  .refresh-btn:hover { background:var(--accent); }
+  .refresh-btn:disabled { opacity:0.4; cursor:not-allowed; }
+
+  .articles-grid { display:flex; flex-direction:column; gap:20px; }
+  .article-card { background:white; border:1px solid var(--rule); border-top:3px solid var(--accent); box-shadow:2px 3px 12px rgba(0,0,0,0.06); overflow:hidden; animation:fadeUp 0.4s ease both; }
+  @keyframes fadeUp { from{opacity:0;transform:translateY(10px);}to{opacity:1;transform:translateY(0);} }
+
+  .article-meta { padding:10px 16px 8px; background:var(--cream); border-bottom:1px solid var(--rule); display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:6px; }
+  .article-source { font-family:'IBM Plex Mono',monospace; font-size:11px; font-weight:500; color:var(--accent); }
+  .article-num { font-family:'IBM Plex Mono',monospace; font-size:10px; color:var(--muted); background:var(--rule); padding:2px 8px; border-radius:2px; }
+
+  .split-pane { display:grid; grid-template-columns:1fr 1fr; }
+  .pane { padding:16px 18px 18px; }
+  .pane-original { border-right:1px solid var(--rule); background:#fafaf8; }
+  .pane-label { font-family:'IBM Plex Mono',monospace; font-size:9px; letter-spacing:2px; text-transform:uppercase; color:var(--muted); margin-bottom:10px; display:flex; align-items:center; gap:6px; }
+  .pane-label::after { content:''; flex:1; height:1px; background:var(--rule); }
+  .pane h2 { font-family:'Playfair Display',serif; font-size:clamp(14px,2vw,18px); font-weight:700; line-height:1.35; margin-bottom:10px; }
+  .pane-translated h2 { font-family:'Noto Serif KR',serif; font-size:clamp(13px,1.8vw,17px); }
+  .pane p { font-size:13px; line-height:1.85; color:#2e2820; }
+  .pane-translated p { font-family:'Noto Serif KR',serif; }
+
+  .notice-bar { background:#fffbf0; border:1px solid #e8d88a; border-radius:3px; padding:8px 14px; font-family:'IBM Plex Mono',monospace; font-size:10px; color:#7a6020; margin-bottom:14px; }
+
+  .loading-state { display:flex; flex-direction:column; align-items:center; justify-content:center; padding:60px 20px; color:var(--muted); font-family:'IBM Plex Mono',monospace; font-size:12px; gap:16px; text-align:center; }
+  .spinner { width:30px; height:30px; border:2px solid var(--rule); border-top-color:var(--accent); border-radius:50%; animation:spin 0.8s linear infinite; }
+  @keyframes spin { to{transform:rotate(360deg);} }
+
+  .err-box { background:#fff8f6; border:1px solid #f5c6bb; border-left:4px solid var(--accent); padding:20px 24px; font-family:'IBM Plex Mono',monospace; font-size:12px; color:#7a3020; line-height:1.9; }
+  .err-box b { display:block; margin-bottom:6px; font-size:13px; }
+
+  footer { text-align:center; padding:20px; font-family:'IBM Plex Mono',monospace; font-size:10px; color:var(--muted); border-top:1px solid var(--rule); margin-top:30px; }
+  @media(max-width:640px){ .split-pane{grid-template-columns:1fr;} .pane-original{border-right:none;border-bottom:1px solid var(--rule);} }
+</style>
+</head>
+<body>
+
+<header class="masthead">
+  <div class="masthead-top">
+    <span id="today-date">—</span>
+    <span>GLOBAL MORNING BRIEFING</span>
+    <span>AI-POWERED</span>
+  </div>
+  <h1>글로벌 <span>모닝</span> 브리핑</h1>
+  <div class="masthead-sub">경제 · 비즈니스 · 원문 & 한국어 번역</div>
+</header>
+
+<nav class="source-bar">
+  <div class="source-group">
+    <span class="group-label">🇺🇸 미국</span>
+    <button class="tab active" data-source="nyt">NYT</button>
+    <button class="tab" data-source="wsj">WSJ</button>
+    <button class="tab" data-source="wp">WaPo</button>
+  </div>
+  <div class="source-group">
+    <span class="group-label">🇬🇧 영국</span>
+    <button class="tab" data-source="ft">FT</button>
+  </div>
+  <div class="source-group">
+    <span class="group-label">🇯🇵 일본</span>
+    <button class="tab" data-source="asahi">아사히</button>
+    <button class="tab" data-source="yomiuri">요미우리</button>
+  </div>
+  <div class="source-group">
+    <span class="group-label">🇰🇷 한국</span>
+    <button class="tab" data-source="mk">매일경제</button>
+  </div>
+</nav>
+
+<main class="main">
+  <div class="notice-bar">
+    ℹ️ Claude AI가 각 신문사의 주요 경제·비즈니스 이슈를 원문 + 한국어로 브리핑합니다. 실시간 기사가 아닌 AI 생성 요약입니다.
+  </div>
+  <div class="status-bar">
+    <span class="status-info" id="status-info">신문사를 선택하면 브리핑을 생성합니다.</span>
+    <button class="refresh-btn" id="refresh-btn" onclick="loadCurrent()">⟳ 새로고침</button>
+  </div>
+  <div class="articles-grid" id="articles-grid">
+    <div class="loading-state"><span>📰 탭을 선택해주세요</span></div>
+  </div>
+</main>
+
+<footer>Claude AI 기반 경제·비즈니스 브리핑 · 원문 저작권은 각 신문사에 있습니다</footer>
+
+<script>
+const SOURCES = {
+  nyt:     { name:'The New York Times',         flag:'🇺🇸', lang:'en', topic:'US economy, business, markets, tech industry' },
+  wsj:     { name:'The Wall Street Journal',    flag:'🇺🇸', lang:'en', topic:'US financial markets, corporate news, economy, Wall Street' },
+  wp:      { name:'The Washington Post',        flag:'🇺🇸', lang:'en', topic:'US economy, policy, business, technology' },
+  ft:      { name:'Financial Times',            flag:'🇬🇧', lang:'en', topic:'global economy, finance, European markets, international business' },
+  asahi:   { name:'朝日新聞 (Asahi Shimbun)',   flag:'🇯🇵', lang:'ja', topic:'日本経済、ビジネス、金融市場、企業動向' },
+  yomiuri: { name:'読売新聞 (Yomiuri Shimbun)', flag:'🇯🇵', lang:'ja', topic:'日本経済、産業、株式市場、国際経済' },
+  mk:      { name:'매일경제',                   flag:'🇰🇷', lang:'ko', topic:'한국 경제, 주식시장, 기업, 금융, 부동산' },
+};
+
+let currentSource = 'nyt';
+
+const todayStr = new Date().toLocaleDateString('ko-KR',{year:'numeric',month:'long',day:'numeric',weekday:'long'});
+document.getElementById('today-date').textContent = todayStr;
+
+document.querySelectorAll('.tab').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    btn.classList.add('active');
+    currentSource = btn.dataset.source;
+    loadCurrent();
+  });
+});
+
+function setLoading(msg) {
+  document.getElementById('articles-grid').innerHTML = `
+    <div class="loading-state">
+      <div class="spinner"></div>
+      <span>${msg}</span>
+    </div>`;
+}
+
+function renderArticles(articles, source) {
+  const grid = document.getElementById('articles-grid');
+  grid.innerHTML = '';
+  articles.forEach((a, i) => {
+    const card = document.createElement('div');
+    card.className = 'article-card';
+    card.style.animationDelay = `${i*0.12}s`;
+    card.innerHTML = `
+      <div class="article-meta">
+        <span class="article-source">${source.flag} ${source.name}</span>
+        <span class="article-num">기사 ${i+1} / 2</span>
+      </div>
+      <div class="split-pane">
+        <div class="pane pane-original">
+          <div class="pane-label">ORIGINAL</div>
+          <h2>${a.originalTitle}</h2>
+          <p>${a.originalSummary}</p>
+        </div>
+        <div class="pane pane-translated">
+          <div class="pane-label">한국어 번역</div>
+          <h2>${a.koreanTitle}</h2>
+          <p>${a.koreanSummary}</p>
+        </div>
+      </div>`;
+    grid.appendChild(card);
+  });
+}
+
+async function fetchBriefing(source) {
+  const today = new Date().toLocaleDateString('en-US',{year:'numeric',month:'long',day:'numeric'});
+
+  // lang-specific instructions
+  const isKo = source.lang === 'ko';
+  const isJa = source.lang === 'ja';
+
+  let instruction = '';
+  if (isKo) {
+    instruction = `두 기사 모두 한국어로 작성하세요. originalTitle/originalSummary에도 한국어를 사용하세요.`;
+  } else if (isJa) {
+    instruction = `originalTitle과 originalSummary는 일본어로 작성하세요. koreanTitle과 koreanSummary는 한국어 번역으로 작성하세요.`;
+  } else {
+    instruction = `originalTitle과 originalSummary는 영어로 작성하세요. koreanTitle과 koreanSummary는 한국어 번역으로 작성하세요.`;
+  }
+
+  const systemPrompt = `당신은 글로벌 경제 전문 저널리스트입니다. 사용자가 요청한 신문사 스타일로 경제·비즈니스 브리핑 기사 2개를 JSON 배열로만 반환하세요.
+
+형식 (JSON 배열만, 마크다운·설명 없이):
+[{"originalTitle":"...","originalSummary":"3문장 요약","koreanTitle":"...","koreanSummary":"3문장 한국어 요약"},{"originalTitle":"...","originalSummary":"3문장 요약","koreanTitle":"...","koreanSummary":"3문장 한국어 요약"}]`;
+
+  const userMsg = `오늘(${today}) ${source.name} 스타일의 경제·비즈니스 주요 기사 2개를 작성해주세요. 주제: ${source.topic}. ${instruction}`;
+
+  const res = await fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      model: 'claude-sonnet-4-20250514',
+      max_tokens: 1200,
+      system: systemPrompt,
+      messages: [{ role:'user', content: userMsg }],
+    }),
+  });
+
+  if (!res.ok) {
+    const err = await res.json().catch(()=>({}));
+    throw new Error(err.error?.message || `HTTP ${res.status}`);
+  }
+
+  const data = await res.json();
+  // data.content is always an array; find first text block
+  const textBlock = (data.content || []).find(b => b.type === 'text');
+  if (!textBlock) throw new Error('응답에 텍스트 없음');
+
+  const raw = textBlock.text.trim();
+  // Extract JSON array from response
+  const match = raw.match(/\[[\s\S]*\]/);
+  if (!match) throw new Error('JSON 형식 파싱 실패:\n' + raw.slice(0,300));
+  return JSON.parse(match[0]);
+}
+
+async function loadCurrent() {
+  const source = SOURCES[currentSource];
+  const btn = document.getElementById('refresh-btn');
+  btn.disabled = true;
+  setLoading(`${source.flag} ${source.name} 브리핑 생성 중...`);
+  document.getElementById('status-info').textContent = 'AI 브리핑 생성 중...';
+
+  try {
+    const articles = await fetchBriefing(source);
+    renderArticles(articles, source);
+    document.getElementById('status-info').textContent =
+      `생성 완료: ${new Date().toLocaleTimeString('ko-KR')} · ${source.name}`;
+  } catch(err) {
+    console.error(err);
+    document.getElementById('articles-grid').innerHTML =
+      `<div class="err-box"><b>⚠️ 오류 발생</b>${err.message}<br><br>잠시 후 새로고침해주세요.</div>`;
+    document.getElementById('status-info').textContent = '생성 실패';
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+loadCurrent();
+</script>
+</body>
+</html>
